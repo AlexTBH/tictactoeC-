@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Linq;
+using System.Security.Cryptography.X509Certificates;
 
 namespace ConsoleApp6
 {
@@ -7,25 +8,49 @@ namespace ConsoleApp6
     {
         static void Main(string[] args)
         {
-            Player p1 = Player.NewPlayer();
-            Player p2 = Player.NewPlayer(p1.Symbol == "X" ? "O" : "X");
+            IUserInterface ui = new InteractiveUI();
+            
+            Player p1 = Player.NewPlayer(ui);
+            Player p2 = Player.NewPlayer(ui, p1.Symbol == "X" ? "O" : "X");
 
-            Console.WriteLine($"\nHej {p1.Name} och {p2.Name}.\nVälkommen till Tic Tac Toe");
-            Console.WriteLine($"\n{p1.Name} spelar med symbolen {p1.Symbol}. {p2.Name} spelar med symbolen {p2.Symbol}");
-            Console.WriteLine("För att spela matar ni in en siffra mellan 1-9 som representerar positionerna på brädan\n\n");
-            Game game = new Game(p1, p2);
+            ui.DisplayMessage($"\nHej {p1.Name} och {p2.Name}.\nVälkommen till Tic Tac Toe");
+            ui.DisplayMessage($"\n{p1.Name} spelar med symbolen {p1.Symbol}. {p2.Name} spelar med symbolen {p2.Symbol}");
+            ui.DisplayMessage("För att spela matar ni in en siffra mellan 1-9 som representerar positionerna på brädan\n\n");
+            Game game = new Game(p1, p2, ui);
             game.playGame();
             Console.ReadKey();
+        }
+    }
+
+    public interface IUserInterface
+    {
+        void DisplayMessage(string message);
+        string GetUserInput();
+
+    }
+
+    public class InteractiveUI : IUserInterface 
+    {
+        public void DisplayMessage(string message)
+        {
+            Console.WriteLine(message);
+        }
+
+        public string GetUserInput()
+        {
+            return Console.ReadLine();
         }
     }
 
     public class Board
     {
         private string[] _board;
+        private IUserInterface _ui;
 
-        public Board()
+        public Board(IUserInterface ui)
         {
             _board = new string[] { "1", "2", "3", "4", "5", "6", "7", "8", "9" };
+            _ui = ui;
         }
 
         public string GetPosition(int input)
@@ -56,15 +81,15 @@ namespace ConsoleApp6
                 {
                     if (_board[combination[0]] == player1.Symbol)
                     {
-                        Console.WriteLine($"\n\n{player1.Name} wins the game!");
-                        Console.WriteLine("Here is the result!");
+                        _ui.DisplayMessage($"\n\n{player1.Name} wins the game!");
+                        _ui.DisplayMessage("Here is the result!");
                         DisplayBoard();
                         return true;
                     }
                     else
                     {
-                        Console.WriteLine($"\n\n{player2.Name} wins the game!");
-                        Console.WriteLine("Here is the result!");
+                        _ui.DisplayMessage($"\n\n{player2.Name} wins the game!");
+                        _ui.DisplayMessage("Here is the result!");
                         DisplayBoard();
                         return true;
                     }
@@ -72,20 +97,15 @@ namespace ConsoleApp6
             }
             return false;
         }
-
         public void DisplayBoard()
         {
-            for (int i = 0; i < _board.Length; i++)
-            {
-                Console.Write($" {_board[i]} ");
-
-                if ((i + 1) % 3 == 0)
-                {
-                    Console.WriteLine("");
-                }
-            }
+            _ui.DisplayMessage($"{_board[0]} | {_board[1]} | {_board[2]}");
+            _ui.DisplayMessage("----------");
+            _ui.DisplayMessage($"{_board[3]} | {_board[4]} | {_board[5]}");
+            _ui.DisplayMessage("----------");
+            _ui.DisplayMessage($"{_board[6]} | {_board[7]} | {_board[8]}");
+            _ui.DisplayMessage("");  // Print a blank line after the board
         }
-
         public void BoardUpdate(int input, string symbol)
         {
             _board[input - 1] = symbol;
@@ -103,13 +123,15 @@ namespace ConsoleApp6
         private Player _player2;
         private Board _board;
         private bool _currentPlayer1;
+        private IUserInterface _ui;
 
-        public Game(Player player1, Player player2)
+        public Game(Player player1, Player player2, IUserInterface ui)
         {
             _player1 = player1;
             _player2 = player2;
-            _board = new Board();
+            _board = new Board(ui);
             _currentPlayer1 = false;
+            _ui = ui;
         }
 
         public void playGame()
@@ -125,7 +147,7 @@ namespace ConsoleApp6
                 if (_board.BoardFull())
                 {
                     _board.DisplayBoard();
-                    Console.WriteLine("Spelet är över, ni är sämst, ingen vann");
+                    _ui.DisplayMessage("Spelet är över, ni är sämst, ingen vann");
                     gameOn = false;
                     break;
                 }
@@ -141,15 +163,15 @@ namespace ConsoleApp6
         public void PlayerChoice(Player player)
         {
             _board.DisplayBoard();
-            Console.WriteLine($"\nDet är {player.Name}'s tur att spela. Du spelar med symbolen {player.Symbol}");
-            Console.WriteLine("Fyll i en ledig position med din symbol");
+            _ui.DisplayMessage($"\nDet är {player.Name}'s tur att spela. Du spelar med symbolen {player.Symbol}");
+            _ui.DisplayMessage("Fyll i en ledig position med din symbol");
 
             bool correctChoice = false;
             int input = 0;
 
             while (!correctChoice)
             {
-                if (Int32.TryParse(Console.ReadLine(), out input))
+                if (Int32.TryParse(_ui.GetUserInput(), out input))
                 {
                     if (input >= 1 && input <= 9 && _board.GetPosition(input - 1) != "X" && _board.GetPosition(input - 1) != "O")
                     {
@@ -157,12 +179,12 @@ namespace ConsoleApp6
                     }
                     else
                     {
-                        Console.WriteLine("Ogiltigt val, välj en siffra mellan 1-9 samt en position som ej är upptagen");
+                        _ui.DisplayMessage("Ogiltigt val, välj en siffra mellan 1-9 samt en position som ej är upptagen");
                     }
                 }
                 else
                 {
-                    Console.WriteLine("Ogiltigt val, vänligen välj en siffra mellan 1-9");
+                    _ui.DisplayMessage("Ogiltigt val, vänligen välj en siffra mellan 1-9");
                 }
             }
 
@@ -175,6 +197,7 @@ namespace ConsoleApp6
         private string _name;
         private string _symbol;
         private int _playerScore;
+        private IUserInterface _ui;
 
         public string Name
         {
@@ -194,28 +217,29 @@ namespace ConsoleApp6
             set { _playerScore = value; }
         }
 
-        public Player(string playerName, string playerSymbol)
+        public Player(string playerName, string playerSymbol, IUserInterface ui)
         {
             _name = playerName;
             _symbol = playerSymbol;
+            _ui = ui;
         }
 
-        public static Player NewPlayer(string playerOneSymbol = null)
+        public static Player NewPlayer(IUserInterface ui, string playerOneSymbol = null)
         {
-            Console.WriteLine(playerOneSymbol == null ? "Skriv in namnet för spelare 1" : "Skriv in namnet för spelare 2");
-            string playerName = Console.ReadLine();
+            ui.DisplayMessage(playerOneSymbol == null ? "Skriv in namnet för spelare 1" : "Skriv in namnet för spelare 2");
+            string playerName = ui.GetUserInput();
 
             string playerSymbol;
 
             if (playerOneSymbol == null)
             {
-                Console.WriteLine($"Välj vilken symbol {playerName} ska vara, välj mellan X eller O");
-                playerSymbol = Console.ReadLine().ToUpper();
+                ui.DisplayMessage($"Välj vilken symbol {playerName} ska vara, välj mellan X eller O");
+                playerSymbol = ui.GetUserInput().ToUpper();
 
                 while (playerSymbol != "X" && playerSymbol != "O")
                 {
-                    Console.WriteLine("Fel val av symbol, vänligen välj mellan X eller O");
-                    playerSymbol = Console.ReadLine().ToUpper();
+                    ui.DisplayMessage("Fel val av symbol, vänligen välj mellan X eller O");
+                    playerSymbol = ui.GetUserInput().ToUpper();
                 }
             }
             else
@@ -223,7 +247,7 @@ namespace ConsoleApp6
                 playerSymbol = playerOneSymbol;
             }
 
-            return new Player(playerName, playerSymbol);
+            return new Player(playerName, playerSymbol, ui);
         }
     }
 }

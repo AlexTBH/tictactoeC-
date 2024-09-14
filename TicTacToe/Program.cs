@@ -2,6 +2,7 @@
 using System.Diagnostics;
 using System.Linq;
 using System.Reflection.Metadata.Ecma335;
+using System.Runtime.CompilerServices;
 using System.Security.Cryptography.X509Certificates;
 
 namespace ConsoleApp6
@@ -54,7 +55,7 @@ namespace ConsoleApp6
 
         string GetNameInput();
         string ChooseSymbol();
-        string PlayerInput(Player currentPlayer);
+        string PlayerInput(Player currentPlayer, Board board);
 
     }
 
@@ -99,17 +100,46 @@ namespace ConsoleApp6
             }
         }
 
-        public string PlayerInput(Player currentPlayer)
+        private List<int> AvailablePositions(string[] board)
+        {
+            List<int> positions = new List<int>();
+
+            foreach (string num in board)
+            {
+                if (num != "X" && num != "O")
+                {
+                    int newNum = int.Parse(num);
+                    positions.Add(newNum);
+                }
+            }
+
+            return positions;
+        }
+
+        public string PlayerInput(Player currentPlayer, Board board)
         {
             if (currentPlayer.Name == "Computer")
             {
                 Random rnd = new();
-                int randomNumber = rnd.Next(1, 10);
-                return randomNumber.ToString();
-            } else
+
+                string[] boardState = board.GetState();
+
+                List<int> positions = AvailablePositions(boardState);
+
+                if (positions.Count > 0)
+                {
+                    int randomNumber = rnd.Next(0, positions.Count);
+                    return positions[randomNumber].ToString();
+                } else
+                {
+                    return "0";
+                }
+            } 
+            else
             {
                 return Console.ReadLine() ?? "";
-            }    
+            }
+
         }
 
     }
@@ -149,12 +179,14 @@ namespace ConsoleApp6
             Debug.WriteLine(message);
         }
 
-        public string PlayerInput(Player currentPlayer)
+        public string PlayerInput(Player currentPlayer, Board board)
         {
             Random rnd = new();
-            int randomNumber = rnd.Next(1, 10);
+            int randomNumber = rnd.Next();
             return randomNumber.ToString();
         }
+
+
     }
 
     public class InteractiveUI : IUserInterface 
@@ -176,7 +208,7 @@ namespace ConsoleApp6
             return symbol;
         }
 
-        public string PlayerInput(Player currentPlayer)
+        public string PlayerInput(Player currentPlayer, Board board)
         {
             string input = Console.ReadLine() ?? "";
             return input;
@@ -186,6 +218,7 @@ namespace ConsoleApp6
     public class Board
     {
         private string[] _board;
+
         private IUserInterface _ui;
 
         public Board(IUserInterface ui)
@@ -197,6 +230,11 @@ namespace ConsoleApp6
         public string GetPosition(int input)
         {
             return _board[input];
+        }
+
+        public string[] GetState()
+        {
+            return _board;
         }
 
         int[][] winCondition = new int[][]
@@ -310,7 +348,7 @@ namespace ConsoleApp6
             bool correctChoice = false;
             int input = 0;
 
-            string playerInput = _ui.PlayerInput(CurrentPlayer);
+            string playerInput = _ui.PlayerInput(CurrentPlayer, _board);
 
             while (!correctChoice)
             {

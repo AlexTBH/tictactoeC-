@@ -1,5 +1,7 @@
 ﻿using System;
+using System.Diagnostics;
 using System.Linq;
+using System.Reflection.Metadata.Ecma335;
 using System.Security.Cryptography.X509Certificates;
 
 namespace ConsoleApp6
@@ -8,7 +10,29 @@ namespace ConsoleApp6
     {
         static void Main(string[] args)
         {
+
+            
             IUserInterface ui = new InteractiveUI();
+
+            ui.DisplayMessage("Välj ett alternativ nedan\n");
+            ui.DisplayMessage("1. Spela mot en vän");
+            ui.DisplayMessage("2. Spela mot datorn");
+            ui.DisplayMessage("3. Debugga");
+
+            int input = Convert.ToInt32(Console.ReadLine());
+
+            switch (input)
+            {
+                case 1:
+                    ui = new InteractiveUI();
+                    break;
+                case 2:
+                    ui = new ComputerPlay();
+                    break;
+                case 3:
+                    ui = new AutoresponeUi();
+                    break;
+            }
             
             Player p1 = Player.NewPlayer(ui);
             Player p2 = Player.NewPlayer(ui, p1.Symbol == "X" ? "O" : "X");
@@ -22,11 +46,115 @@ namespace ConsoleApp6
         }
     }
 
+    
+    
     public interface IUserInterface
     {
         void DisplayMessage(string message);
-        string GetUserInput();
 
+        string GetNameInput();
+        string ChooseSymbol();
+        string PlayerInput(Player currentPlayer);
+
+    }
+
+    public class ComputerPlay : IUserInterface
+    {
+        private bool _playerOneName = false;
+        private bool _playerOneSymbol = false;
+        private string _playerSymbol;
+
+        public string ChooseSymbol()
+        {
+            if (!_playerOneSymbol)
+            {
+                _playerOneSymbol= true;
+                string symbol = Console.ReadLine() ?? "";
+                _playerSymbol = symbol;
+                return symbol;
+            } else
+            {
+                string computerSymbol = "";
+
+                computerSymbol = _playerSymbol == "X" ? "O" : "X";
+                return computerSymbol;
+            }
+        }
+
+        public void DisplayMessage(string message)
+        {
+            Console.WriteLine(message);
+        }
+
+        public string GetNameInput()
+        {
+            if (!_playerOneName)
+            {
+                _playerOneName= true;
+                string name = Console.ReadLine() ?? "";
+                return name;
+            } else
+            {
+                return "Computer";
+            }
+        }
+
+        public string PlayerInput(Player currentPlayer)
+        {
+            if (currentPlayer.Name == "Computer")
+            {
+                Random rnd = new();
+                int randomNumber = rnd.Next(1, 10);
+                return randomNumber.ToString();
+            } else
+            {
+                return Console.ReadLine() ?? "";
+            }    
+        }
+
+    }
+
+    public class AutoresponeUi : IUserInterface
+    {
+        private bool _playerOneCreated = false;
+        private bool _symbolCreated = false;
+
+
+        public string GetNameInput() 
+        {
+            if (_playerOneCreated)
+            {
+                return "Kalle";
+            } else
+            {
+                _playerOneCreated = true;
+                return "Alex";
+            }
+        }
+
+        public string ChooseSymbol()
+        {
+            if (_symbolCreated)
+            {
+                return "X";
+            } else
+            {
+                _symbolCreated = true;
+                return "O";
+            }
+        }
+
+        public void DisplayMessage(string message)
+        {
+            Debug.WriteLine(message);
+        }
+
+        public string PlayerInput(Player currentPlayer)
+        {
+            Random rnd = new();
+            int randomNumber = rnd.Next(1, 10);
+            return randomNumber.ToString();
+        }
     }
 
     public class InteractiveUI : IUserInterface 
@@ -36,9 +164,22 @@ namespace ConsoleApp6
             Console.WriteLine(message);
         }
 
-        public string GetUserInput()
+        public string GetNameInput()
         {
-            return Console.ReadLine();
+            string name = Console.ReadLine() ?? "";
+            return name;
+        }
+
+        public string ChooseSymbol()
+        {
+            string symbol = Console.ReadLine() ?? "";
+            return symbol;
+        }
+
+        public string PlayerInput(Player currentPlayer)
+        {
+            string input = Console.ReadLine() ?? "";
+            return input;
         }
     }
 
@@ -122,7 +263,7 @@ namespace ConsoleApp6
         private Player _player1;
         private Player _player2;
         private Board _board;
-        private bool _currentPlayer1;
+        public Player CurrentPlayer;
         private IUserInterface _ui;
 
         public Game(Player player1, Player player2, IUserInterface ui)
@@ -130,21 +271,22 @@ namespace ConsoleApp6
             _player1 = player1;
             _player2 = player2;
             _board = new Board(ui);
-            _currentPlayer1 = false;
+            CurrentPlayer = _player1;
             _ui = ui;
         }
+
 
         public void playGame()
         {
             bool gameOn = true;
             while (gameOn)
             {
-                PlayerChoice(switchPlayer());
+                PlayerChoice();
                 if (_board.GameOver(_player1, _player2))
                 {
                     gameOn = false;
                 }
-                if (_board.BoardFull())
+                else if (_board.BoardFull())
                 {
                     _board.DisplayBoard();
                     _ui.DisplayMessage("Spelet är över, ni är sämst, ingen vann");
@@ -154,24 +296,25 @@ namespace ConsoleApp6
             }
         }
 
-        public Player switchPlayer()
+        public void switchPlayer()
         {
-            _currentPlayer1 = !_currentPlayer1;
-            return _currentPlayer1 ? _player1 : _player2;
+            CurrentPlayer = CurrentPlayer == _player1 ? _player2 : _player1;
         }
 
-        public void PlayerChoice(Player player)
+        public void PlayerChoice()
         {
             _board.DisplayBoard();
-            _ui.DisplayMessage($"\nDet är {player.Name}'s tur att spela. Du spelar med symbolen {player.Symbol}");
+            _ui.DisplayMessage($"\nDet är {CurrentPlayer.Name}'s tur att spela. Du spelar med symbolen {CurrentPlayer.Symbol}");
             _ui.DisplayMessage("Fyll i en ledig position med din symbol");
 
             bool correctChoice = false;
             int input = 0;
 
+            string playerInput = _ui.PlayerInput(CurrentPlayer);
+
             while (!correctChoice)
             {
-                if (Int32.TryParse(_ui.GetUserInput(), out input))
+                if (Int32.TryParse(playerInput, out input))
                 {
                     if (input >= 1 && input <= 9 && _board.GetPosition(input - 1) != "X" && _board.GetPosition(input - 1) != "O")
                     {
@@ -188,7 +331,8 @@ namespace ConsoleApp6
                 }
             }
 
-            _board.BoardUpdate(input, player.Symbol);
+            _board.BoardUpdate(input, CurrentPlayer.Symbol);
+            switchPlayer();
         }
     }
 
@@ -227,19 +371,19 @@ namespace ConsoleApp6
         public static Player NewPlayer(IUserInterface ui, string playerOneSymbol = null)
         {
             ui.DisplayMessage(playerOneSymbol == null ? "Skriv in namnet för spelare 1" : "Skriv in namnet för spelare 2");
-            string playerName = ui.GetUserInput();
+            string playerName = ui.GetNameInput();
 
             string playerSymbol;
 
             if (playerOneSymbol == null)
             {
                 ui.DisplayMessage($"Välj vilken symbol {playerName} ska vara, välj mellan X eller O");
-                playerSymbol = ui.GetUserInput().ToUpper();
+                playerSymbol = ui.ChooseSymbol().ToUpper();
 
                 while (playerSymbol != "X" && playerSymbol != "O")
                 {
                     ui.DisplayMessage("Fel val av symbol, vänligen välj mellan X eller O");
-                    playerSymbol = ui.GetUserInput().ToUpper();
+                    playerSymbol = ui.ChooseSymbol().ToUpper();
                 }
             }
             else

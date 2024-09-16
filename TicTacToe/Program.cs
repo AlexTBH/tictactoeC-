@@ -141,7 +141,6 @@ namespace ConsoleApp6
             }
 
         }
-
     }
 
     public class AutoresponeUi : IUserInterface
@@ -237,45 +236,7 @@ namespace ConsoleApp6
             return _board;
         }
 
-        int[][] winCondition = new int[][]
-        {
-            new int [] {0, 1, 2},
-            new int [] {3, 4, 5},
-            new int [] {6, 7, 8},
-            new int [] {0, 3, 6},
-            new int [] {1, 4, 7},
-            new int [] {2, 5, 8},
-            new int [] {0, 4 ,8},
-            new int [] {2, 4, 6},
-        };
 
-        public bool GameOver(Player player1, Player player2)
-        {
-            foreach (int[] combination in winCondition)
-            {
-                string combinations = _board[combination[0]] + _board[combination[1]] + _board[combination[2]];
-                bool allSame = combinations.All(c => c == combinations[0]);
-
-                if (allSame)
-                {
-                    if (_board[combination[0]] == player1.Symbol)
-                    {
-                        _ui.DisplayMessage($"\n\n{player1.Name} wins the game!");
-                        _ui.DisplayMessage("Here is the result!");
-                        DisplayBoard();
-                        return true;
-                    }
-                    else
-                    {
-                        _ui.DisplayMessage($"\n\n{player2.Name} wins the game!");
-                        _ui.DisplayMessage("Here is the result!");
-                        DisplayBoard();
-                        return true;
-                    }
-                }
-            }
-            return false;
-        }
         public void DisplayBoard()
         {
             _ui.DisplayMessage($"{_board[0]} | {_board[1]} | {_board[2]}");
@@ -313,6 +274,48 @@ namespace ConsoleApp6
             _ui = ui;
         }
 
+        int[][] winCondition = new int[][]
+        {
+            new int [] {0, 1, 2},
+            new int [] {3, 4, 5},
+            new int [] {6, 7, 8},
+            new int [] {0, 3, 6},
+            new int [] {1, 4, 7},
+            new int [] {2, 5, 8},
+            new int [] {0, 4 ,8},
+            new int [] {2, 4, 6},
+        };
+
+        public bool GameOver(Player player1, Player player2)
+        {
+            string[] boardState = _board.GetState();
+
+            foreach (int[] combination in winCondition)
+            {
+                string combinations = boardState[combination[0]] + boardState[combination[1]] + boardState[combination[2]];
+                bool allSame = combinations.All(c => c == combinations[0]);
+
+                if (allSame)
+                {
+                    if (boardState[combination[0]] == player1.Symbol)
+                    {
+                        _ui.DisplayMessage($"\n\n{player1.Name} wins the game!");
+                        _ui.DisplayMessage("Here is the result!");
+                        _board.DisplayBoard();
+                        return true;
+                    }
+                    else
+                    {
+                        _ui.DisplayMessage($"\n\n{player2.Name} wins the game!");
+                        _ui.DisplayMessage("Here is the result!");
+                        _board.DisplayBoard();
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
+
 
         public void playGame()
         {
@@ -320,7 +323,7 @@ namespace ConsoleApp6
             while (gameOn)
             {
                 PlayerChoice();
-                if (_board.GameOver(_player1, _player2))
+                if (GameOver(_player1, _player2))
                 {
                     gameOn = false;
                 }
@@ -372,6 +375,8 @@ namespace ConsoleApp6
             _board.BoardUpdate(input, CurrentPlayer.Symbol);
             switchPlayer();
         }
+
+
     }
 
     public class Player

@@ -11,14 +11,13 @@ namespace ConsoleApp6
     {
         static void Main(string[] args)
         {
-
             
             IUserInterface ui = new InteractiveUI();
 
             ui.DisplayMessage("Välj ett alternativ nedan\n");
             ui.DisplayMessage("1. Spela mot en vän");
             ui.DisplayMessage("2. Spela mot datorn");
-            ui.DisplayMessage("3. Debugga");
+            
 
             int input = Convert.ToInt32(Console.ReadLine());
 
@@ -29,9 +28,6 @@ namespace ConsoleApp6
                     break;
                 case 2:
                     ui = new ComputerPlay();
-                    break;
-                case 3:
-                    ui = new AutoresponeUi();
                     break;
             }
             
@@ -315,7 +311,6 @@ namespace ConsoleApp6
             }
             return false;
         }
-
 
         public void playGame()
         {
